@@ -1,0 +1,36 @@
+# Environments
+venv/
+env/
+.env
+.venv
+
+# Python Cache & Build
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+.ruff_cache/
+sleep_monitor.egg-info/
+build/
+dist/
+*.egg
+
+# Data & Video Files
+*.mp4
+*.avi
+*.mov
+*.mkv
+
+# Machine Learning Weights & Ultralytics
+*.pt
+runs/
+
+# Project Outputs
+output/
+results/
+
+# IDE & OS Files
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db

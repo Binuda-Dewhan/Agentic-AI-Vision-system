@@ -1,0 +1,42 @@
+# Elderly Sleep Monitoring System - Default Configuration
+
+target_person:
+  mode: auto
+
+video:
+  frame_sample_rate: 2
+  segment_duration_sec: 2
+
+perception:
+  detection_model: yolov8n.pt
+  pose_model: yolov8n-pose.pt
+  detection_confidence_threshold: 0.5
+  keypoint_visibility_threshold: 0.5
+
+bed_region:
+  bed_region_polygon: null  # Configure per-scene: [[x1,y1], [x2,y2], ...]
+  bed_edge_margin: 20
+
+temporal_state:
+  state_confirmation_window_sec: 4
+  state_transition_hysteresis: 1.5
+  confidence_threshold: 0.6
+
+bed_events:
+  bed_exit_hysteresis_sec: 10
+  bed_exit_spatial_threshold: 50
+  return_hysteresis_sec: 5
+
+safety_rules:
+  monitor_confidence_threshold: 0.6
+  monitor_bed_edge_duration_sec: 120
+  out_of_bed_monitor_sec: 300
+  alert_out_of_bed_duration_sec: 900
+  alert_unknown_duration_sec: 300
+  max_exits_before_alert: 3
+
+vlm:
+  vlm_provider: anthropic
+  vlm_model: claude-3-5-sonnet-latest
+  vlm_max_frames_per_query: 5
+  vlm_enabled: true
