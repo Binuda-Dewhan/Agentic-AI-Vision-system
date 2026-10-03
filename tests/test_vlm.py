@@ -11,8 +11,8 @@ from sleep_monitor.schemas.state import ActivityState
 @pytest.fixture
 def vlm_config():
     return VlmConfig(
-        vlm_provider="anthropic",
-        vlm_model="claude-3-5-sonnet-latest",
+        vlm_provider="google",
+        vlm_model="gemini-3.8-flash",
         vlm_max_frames_per_query=2,
         vlm_enabled=True,
     )
@@ -31,7 +31,7 @@ def test_vlm_disabled():
     assert "disabled" in response.reasoning.lower()
 
 
-@patch("sleep_monitor.perception.vlm.ChatAnthropic")
+@patch("sleep_monitor.perception.vlm.ChatGoogleGenerativeAI")
 def test_vlm_enabled_mock_response(mock_chat_class, vlm_config):
     # Setup mock
     mock_llm = MagicMock()
@@ -70,5 +70,5 @@ def test_vlm_enabled_mock_response(mock_chat_class, vlm_config):
     assert len(call_args) == 2
     human_msg = call_args[1]
 
-    # Text prompt + 2 image URLs
+    # Text prompt + 2 image URLs (truncated to max_frames=2)
     assert len(human_msg.content) == 3

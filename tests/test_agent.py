@@ -13,7 +13,7 @@ from sleep_monitor.schemas.state import ActivityState
 @pytest.fixture
 def vlm_config():
     return VlmConfig(
-        vlm_enabled=True, vlm_provider="anthropic", vlm_model="claude-3-5-sonnet-latest"
+        vlm_enabled=True, vlm_provider="google", vlm_model="gemini-3.8-flash"
     )
 
 
@@ -38,8 +38,8 @@ def test_agent_disabled():
     assert "disabled" in decision.reasoning
 
 
-@patch("sleep_monitor.agent.investigator.ChatAnthropic")
-@patch("sleep_monitor.perception.vlm.ChatAnthropic")
+@patch("sleep_monitor.agent.investigator.ChatGoogleGenerativeAI")
+@patch("sleep_monitor.perception.vlm.ChatGoogleGenerativeAI")
 def test_agent_graph_execution(mock_vlm_llm, mock_agent_llm, vlm_config):
     # Setup VLM mock
     mock_vlm_structured = MagicMock()

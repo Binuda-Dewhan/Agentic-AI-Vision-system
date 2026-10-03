@@ -28,7 +28,10 @@ def cli():
 @click.option(
     "--verbose", "-v", is_flag=True, default=False, help="Enable verbose logging."
 )
-def analyze(video_path, config, output, verbose):
+@click.option(
+    "--visualize", is_flag=True, default=False, help="Show video frames during analysis."
+)
+def analyze(video_path, config, output, verbose, visualize):
     """Analyze a video file for elderly sleep monitoring."""
     setup_logging(verbose=verbose)
     logger = logging.getLogger(__name__)
@@ -50,7 +53,7 @@ def analyze(video_path, config, output, verbose):
     from sleep_monitor.pipeline import Pipeline
 
     pipeline = Pipeline(settings)
-    report = pipeline.run(video_path, output_path=output)
+    report = pipeline.run(video_path, output_path=output, visualize=visualize)
 
     # Print summary to console
     click.echo("\n" + "=" * 60)

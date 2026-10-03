@@ -49,12 +49,16 @@ def test_timeline_engine():
     assert report.timeline[-1].start_time_sec == 6.0
     assert report.timeline[-1].end_time_sec == 12.0
 
-    # Validate Activity Durations
+    # Validate Activity Durations (should NOT include OUT_OF_BED — that's in bed_summary)
     assert report.activity_durations[ActivityState.LYING_IN_BED.value] == 2.0
     assert report.activity_durations[ActivityState.SITTING_ON_BED.value] == 2.0
     assert report.activity_durations[ActivityState.STANDING.value] == 2.0
     assert report.activity_durations[ActivityState.WALKING.value] == 6.0
-    assert report.activity_durations["OUT_OF_BED"] == 8.0  # 2s standing + 6s walking
+    assert "OUT_OF_BED" not in report.activity_durations
+
+    # Activity durations should sum to total video duration (12s)
+    total_activity = sum(report.activity_durations.values())
+    assert total_activity == 12.0
 
     # Validate Bed Summary
     assert report.bed_summary.time_in_bed == 4.0

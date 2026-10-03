@@ -23,12 +23,12 @@ class TimelineEngine:
         self.current_segment: TimelineSegment | None = None
 
         # Track activity durations
+        # NOTE: OUT_OF_BED is a bed context, not an activity. It is tracked
+        # separately in bed_summary.time_out_of_bed to avoid double-counting
+        # (e.g., WALKING while OUT_OF_BED would count in both otherwise).
         self.activity_durations: dict[str, float] = {
             state.value: 0.0 for state in ActivityState
         }
-        self.activity_durations["OUT_OF_BED"] = (
-            0.0  # From bed context, required by assignment
-        )
 
         self.bed_events: list[BedEvent] = []
 
@@ -83,7 +83,6 @@ class TimelineEngine:
         elif bed_context == BedContext.OUT_OF_BED:
             self.time_out_of_bed += duration
             self.current_out_duration += duration
-            self.activity_durations["OUT_OF_BED"] += duration
 
         # 4. Record Events
         if event:

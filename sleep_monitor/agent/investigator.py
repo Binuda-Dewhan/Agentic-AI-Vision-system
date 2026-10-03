@@ -6,6 +6,7 @@ from langchain_google_genai import ChatGoogleGenerativeAI
 from langgraph.graph import END, StateGraph
 
 from sleep_monitor.agent.schemas import AgentDecision
+from sleep_monitor.agent.temporal_context import TemporalContext
 from sleep_monitor.config.settings import VlmConfig
 from sleep_monitor.perception.vlm import VlmClassifier
 from sleep_monitor.schemas.perception import Observation
@@ -18,6 +19,7 @@ logger = logging.getLogger(__name__)
 class AgentState(TypedDict):
     observation: Observation
     frames: list[np.ndarray]
+    temporal_context: TemporalContext
     vlm_result: str
     historical_context: str
     vlm_was_used: bool
@@ -27,7 +29,20 @@ class AgentState(TypedDict):
 class InvestigationAgent:
     """
     A LangGraph-based agent that investigates ambiguous temporal segments
-    by combining historical context with Vision-Language Model analysis.
+    by combining rich temporal context with Vision-Language Model analysis.
+
+    Decision path:
+      START → GATHER TEMPORAL CONTEXT → ASSESS UNCERTAINTY
+        → if context sufficient: deterministic/temporal decision
+        → if context insufficient: VLM investigation
+      → STRUCTURED DECISION → END
+
+    Temporal context includes:
+      - previous segment evidence & determined state
+      - current segment evidence
+      - next/following segment evidence (when available via buffer)
+      - recent state history
+      - current bed context & pending event candidates
     """
 
     def __init__(self, vlm_config: VlmConfig):
@@ -74,14 +89,19 @@ class InvestigationAgent:
         return builder.compile()
 
     def _node_gather_context(self, state: AgentState) -> dict:
-        obs = state["observation"]
-        hist = (
-            f"Segment {obs.segment_id} ({obs.start_time_sec}s - {obs.end_time_sec}s).\n"
-        )
-        hist += f"Deterministic Evidence: Lying={obs.average_evidence.lying:.2f}, Sitting={obs.average_evidence.sitting:.2f}, Standing={obs.average_evidence.standing:.2f}.\n"
-        hist += f"Spatial Position: {obs.majority_spatial_position}."
+        """
+        Gather and format temporal context for the decision node.
 
-        return {"historical_context": hist}
+        This node uses the TemporalContext object which contains:
+        - previous segment evidence & determined activity
+        - current segment evidence & spatial position
+        - next/following segment evidence (when buffered look-ahead exists)
+        - recent state history (last N transitions)
+        - current bed context & pending event candidates
+        """
+        temporal_ctx = state["temporal_context"]
+        formatted = temporal_ctx.format_for_prompt()
+        return {"historical_context": formatted}
 
     def _should_run_vlm(self, state: AgentState) -> bool:
         return self.enabled and len(state.get("frames", [])) > 0
@@ -110,9 +130,12 @@ class InvestigationAgent:
 
         prompt = (
             "You are the final decision node in an investigation agent for elderly monitoring.\n"
-            f"Historical Context:\n{state.get('historical_context', 'None')}\n\n"
+            "You have access to temporal context from surrounding video segments and recent state history.\n"
+            "Use this temporal evidence to determine the most likely ActivityState.\n"
+            "If the evidence is genuinely insufficient, return UNKNOWN — do not force a classification.\n\n"
+            f"Temporal Context:\n{state.get('historical_context', 'None')}\n\n"
             f"VLM Analysis:\n{state.get('vlm_result', 'None')}\n\n"
-            "Synthesize this information to determine the most likely ActivityState."
+            "Synthesize ALL available temporal evidence to determine the ActivityState."
         )
 
         try:
@@ -133,9 +156,19 @@ class InvestigationAgent:
             }
 
     def investigate(
-        self, observation: Observation, frames: list[np.ndarray]
+        self,
+        observation: Observation,
+        frames: list[np.ndarray],
+        temporal_context: TemporalContext | None = None,
     ) -> AgentDecision:
-        """Entry point to trigger the graph."""
+        """
+        Entry point to trigger the investigation graph.
+
+        Args:
+            observation: Current segment observation.
+            frames: Raw video frames for VLM analysis.
+            temporal_context: Rich temporal context from the pipeline buffer.
+        """
         if not self.enabled:
             return AgentDecision(
                 confirmed_state=ActivityState.UNKNOWN,
@@ -145,9 +178,19 @@ class InvestigationAgent:
                 vlm_used=False,
             )
 
+        if temporal_context is None:
+            temporal_context = TemporalContext(
+                current_segment_id=observation.segment_id,
+                current_start_sec=observation.start_time_sec,
+                current_end_sec=observation.end_time_sec,
+                current_evidence=observation.average_evidence,
+                current_spatial=observation.majority_spatial_position,
+            )
+
         initial_state = {
             "observation": observation,
             "frames": frames,
+            "temporal_context": temporal_context,
             "vlm_result": "Not run",
             "historical_context": "",
             "vlm_was_used": False,

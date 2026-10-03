@@ -49,6 +49,13 @@ class VideoIngester:
         """
         Yield temporal segments from the video.
         Samples frames at target_fps and groups them into segments of segment_duration_sec.
+
+        Segment end_time represents the temporal COVERAGE of the segment
+        (start_time + segment_duration), not the timestamp of the last sampled
+        frame. This guarantees:
+          - adjacent segments are contiguous (no gaps)
+          - segment durations sum to the video duration
+          - the final partial segment is clamped to video duration
         """
         metadata = self.get_metadata()
         cap = cv2.VideoCapture(self.video_path)
@@ -83,7 +90,11 @@ class VideoIngester:
 
                     if len(current_segment_frames) == frames_per_segment:
                         start_time = current_segment_frames[0].timestamp_sec
-                        end_time = current_segment_frames[-1].timestamp_sec
+                        # End time = start of the NEXT segment (contiguous coverage)
+                        end_time = min(
+                            start_time + segment_duration_sec,
+                            metadata.duration_sec,
+                        )
 
                         yield TemporalSegment(
                             segment_id=segment_id,
@@ -100,7 +111,8 @@ class VideoIngester:
             # Yield any remaining frames as the final segment
             if current_segment_frames:
                 start_time = current_segment_frames[0].timestamp_sec
-                end_time = current_segment_frames[-1].timestamp_sec
+                # Final segment extends to video end
+                end_time = metadata.duration_sec
                 yield TemporalSegment(
                     segment_id=segment_id,
                     start_time_sec=start_time,

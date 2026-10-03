@@ -7,7 +7,7 @@ logger = logging.getLogger(__name__)
 
 
 class TargetSelector:
-    def __init__(self, mode: str = "auto"):
+    def __init__(self, mode: str = "auto", reassociation_distance_px: int = 100):
         """
         Initialize target selector.
         Supported modes: 'auto' (first stable subject)
@@ -15,6 +15,7 @@ class TargetSelector:
         self.mode = mode
         self.primary_track_id: int | None = None
         self.last_known_bbox = None
+        self.reassociation_distance_px = reassociation_distance_px
 
         # Used to require a person to be seen a few times before locking as target
         self._candidates: dict[int, int] = {}
@@ -103,8 +104,8 @@ class TargetSelector:
             for p in persons:
                 dist = self._distance(p.bbox, self.last_known_bbox)
                 if (
-                    dist < 100 and dist < min_dist
-                ):  # Threshold in pixels for spatial match
+                    dist < self.reassociation_distance_px and dist < min_dist
+                ):  # Configurable threshold for spatial match
                     min_dist = dist
                     best_match = p
 

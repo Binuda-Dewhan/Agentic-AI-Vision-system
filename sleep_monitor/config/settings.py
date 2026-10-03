@@ -4,12 +4,13 @@ import yaml
 from dotenv import load_dotenv
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
-# Load .env variables into os.environ so Langchain/Anthropic can see them
+# Load .env variables into os.environ so Langchain/Google can see them
 load_dotenv()
 
 
 class TargetPersonConfig(BaseSettings):
     mode: str = "auto"
+    reassociation_distance_px: int = 100  # Max pixel distance for re-associating a lost track
 
 
 class VideoConfig(BaseSettings):
@@ -39,7 +40,6 @@ class TemporalStateConfig(BaseSettings):
 
 class BedEventsConfig(BaseSettings):
     bed_exit_hysteresis_sec: int = 10
-    bed_exit_spatial_threshold: int = 50
     return_hysteresis_sec: int = 5
 
 
