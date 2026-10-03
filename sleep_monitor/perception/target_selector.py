@@ -109,10 +109,17 @@ class TargetSelector:
                     min_dist = dist
                     best_match = p
 
-            if best_match:
+            if not best_match and len(persons) == 1:
+                best_match = persons[0]
+                logger.info(
+                    f"Track ID changed {self.primary_track_id} -> {best_match.track_id} via single-person fallback."
+                )
+            elif best_match:
                 logger.info(
                     f"Track ID changed {self.primary_track_id} -> {best_match.track_id} due to spatial proximity."
                 )
+
+            if best_match:
                 self.primary_track_id = best_match.track_id
                 best_match.is_primary_target = True
                 self.last_known_bbox = best_match.bbox

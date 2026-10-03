@@ -145,6 +145,15 @@ class Pipeline:
                 state_text = f"Prev State: {previous_activity.value if previous_activity else 'UNKNOWN'}"
                 cv2.putText(annotated, state_text, (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2)
                 
+                # Manually resize the image to fit a reasonable screen size while preserving aspect ratio
+                h, w = annotated.shape[:2]
+                max_height = 720
+                if h > max_height:
+                    scale = max_height / h
+                    new_w = int(w * scale)
+                    new_h = int(h * scale)
+                    annotated = cv2.resize(annotated, (new_w, new_h))
+                    
                 cv2.imshow("Analysis", annotated)
                 cv2.waitKey(1)
 

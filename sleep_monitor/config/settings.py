@@ -10,7 +10,7 @@ load_dotenv()
 
 class TargetPersonConfig(BaseSettings):
     mode: str = "auto"
-    reassociation_distance_px: int = 100  # Max pixel distance for re-associating a lost track
+    reassociation_distance_px: int = 500  # Max pixel distance for re-associating a lost track. Increased to 500 for low FPS walking.
 
 
 class VideoConfig(BaseSettings):

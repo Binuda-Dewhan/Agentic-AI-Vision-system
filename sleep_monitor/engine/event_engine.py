@@ -43,7 +43,7 @@ class BedEventEngine:
                 ActivityState.WALKING,
                 ActivityState.SITTING_OUTSIDE_BED,
             ]
-            is_out_spatial = observation.majority_spatial_position == "OUTSIDE"
+            is_out_spatial = observation.majority_spatial_position in ["OUTSIDE", "UNKNOWN"]
 
             if is_out_posture and is_out_spatial:
                 if self.potential_exit_start_time is None:

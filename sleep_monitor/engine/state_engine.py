@@ -74,7 +74,20 @@ class StateEngine:
 
         # If no target frames or score is too low, fall back to UNKNOWN
         valid_frames = sum(1 for frame in obs.frames if frame.bbox is not None)
-        if valid_frames == 0 or avg_score < self.config.confidence_threshold:
+        
+        if valid_frames == 0:
+            # Deterministic disappearance rule: if the person was near or out of bed,
+            # and they completely disappear (walk out of FOV), infer they are walking/out of bed.
+            if self.current_activity in [
+                ActivityState.SITTING_ON_BED,
+                ActivityState.SITTING_OUTSIDE_BED,
+                ActivityState.STANDING,
+                ActivityState.WALKING,
+            ]:
+                new_activity = ActivityState.WALKING
+            else:
+                new_activity = ActivityState.UNKNOWN
+        elif avg_score < self.config.confidence_threshold:
             new_activity = ActivityState.UNKNOWN
         else:
             new_activity = best_state
