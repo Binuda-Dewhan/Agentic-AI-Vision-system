@@ -1,51 +1,22 @@
-# Agentic AI Vision System - Sleep Monitor
+# Agentic AI Vision System: Elderly Sleep & Safety Monitor
 
-This project implements an Agentic AI + Vision system that analyzes continuous indoor video of an elderly person to determine their activity, detect bed exits/returns, and output an activity timeline with a safety decision.
+## 📖 Overview
+This project implements a hybrid Agentic AI and Computer Vision system designed to continuously monitor indoor video of an elderly person. Its primary purpose is to recognize their physical activity, detect critical **Bed Exit** and **Return to Bed** events, and generate an automated safety timeline.
 
-## Overview
+The system was built with robustness and privacy in mind, utilizing a combination of high-speed deterministic algorithms (YOLOv8 + spatial polygons) and a secondary **Agentic Vision-Language Model (VLM) fallback** to resolve highly ambiguous situations.
 
-The system uses a combination of deterministic spatial/temporal rules and an Agentic Vision-Language Model (VLM) fallback to analyze human posture and spatial relationships to a configured "bed region."
+---
 
-Key capabilities:
-- **Activity State Recognition:** Classifies states such as `LYING_IN_BED`, `SITTING_ON_BED`, `STANDING`, `WALKING`, and `UNKNOWN`.
-- **Bed Exit and Return:** Uses hysteresis to filter out false exits/returns and only triggers when a person physically moves away from or returns to the bed.
-- **Disappearance Inference (Deterministic Fallback):** If the target person completely disappears from the camera frame (0 detections), the system infers they are `WALKING` and `OUT_OF_BED` (if they were previously upright/near the edge). This handles camera FOV exits robustly without AI.
-- **Agentic Fallback (Optional):** Uses LangGraph and Gemini 3.8 Flash to investigate ambiguous segments (e.g. `UNKNOWN` states) by looking at temporal context. **Note:** The VLM is strictly an optional ambiguity-investigation path. If the API is unavailable, rate-limited, or disabled, the pipeline gracefully bypasses the agent and relies on the deterministic state tracking.
+## ✨ Core Features
+- **Temporal Activity State Tracking:** Accurately classifies ongoing states including `LYING_IN_BED`, `SITTING_ON_BED`, `STANDING`, `WALKING`, and `UNKNOWN`.
+- **Robust Bed Event Detection:** Uses configurable temporal hysteresis (e.g., 10 seconds) to completely eliminate false positives. Someone merely sitting up or rolling over will *not* trigger an exit alarm.
+- **Disappearance Inference (Deterministic):** If a person completely leaves the camera's field of view, the system utilizes their last known state to intelligently infer they are `WALKING` and `OUT_OF_BED` without crashing or relying on AI.
+- **Agentic VLM Fallback (Optional):** When the deterministic pipeline encounters heavy occlusion or highly ambiguous poses (`UNKNOWN` states), it leverages LangGraph and Google's Gemini 3.8 Flash to interpret the scene using temporal context. *(Note: If the API is rate-limited or disabled, the pipeline gracefully bypasses the agent and relies on local deterministic logic).*
+- **Safety Engine:** Evaluates the timeline history against configurable safety rules to output a final decision: `NORMAL`, `MONITOR`, or `ALERT`.
 
-## Setup Instructions
+---
 
-1. **Install dependencies:**
-   ```bash
-   pip install -r requirements.txt
-   ```
-2. **Configure API Keys:**
-   The VLM requires a Gemini API key. Set it in your environment:
-   ```bash
-   export GEMINI_API_KEY="your-api-key"
-   ```
-3. **Configure Bed Region:**
-   To configure the bed polygon for a new video, run the helper script:
-   ```bash
-   python get_bed_polygon.py <path_to_video>
-   ```
-   Click on the image to select the 4 corners of the bed. Right-click to undo, and press `q` to quit and copy the polygon to `config.yaml`.
-
-## Running the Pipeline
-
-To analyze a video and generate a full timeline report:
-
-```bash
-python -m sleep_monitor.cli analyze "video_1.mp4" --config "config.yaml"
-```
-
-To see visual debugging (shows bounding boxes, poses, and polygons on the frames as they are processed):
-```bash
-python -m sleep_monitor.cli analyze "video_1.mp4" --config "config.yaml" --visualize
-```
-
-The system will output a final report to `output/video_1_report.json` containing the durations, timeline, bed events, and safety decisions.
-
-## Architecture Diagram
+## 🏗️ Architecture
 
 ```mermaid
 flowchart TD
@@ -76,15 +47,76 @@ flowchart TD
     K -->|NORMAL / MONITOR / ALERT| L[Final JSON Report]
 ```
 
-## System Components
-
-1. **VideoIngester:** Extracts frames at a configured sample rate and groups them into temporal segments.
+### System Components Explained
+1. **VideoIngester:** Extracts frames at a low frame rate (e.g., 2 FPS) to save compute, chunking them into temporal segments (e.g., 2 seconds).
 2. **Perception Layer:** 
    - **YOLOv8n:** Detects persons in the frame.
    - **TargetSelector (ByteTrack):** Locks onto a single primary target to ignore caregivers/bystanders.
    - **YOLOv8n-pose:** Extracts skeletal keypoints.
-   - **SpatialAnalyzer:** Evaluates bounding boxes against the configured bed polygon.
-3. **StateEngine:** Uses a sliding window and hysteresis to determine the deterministic `ActivityState`. Implements logic to track targets that leave the camera's FOV.
-4. **InvestigationAgent (VLM):** An agentic fallback using LangGraph. If the `StateEngine` outputs `UNKNOWN`, it sends frames and temporal context to Gemini to resolve ambiguity.
-5. **BedEventEngine:** Tracks transitions into and out of the bed, triggering `BED_EXIT` and `RETURN_TO_BED` events only after a configurable hysteresis threshold.
-6. **Safety & Timeline Engines:** Generates the final timeline, formats activity durations, and outputs safety alerts based on predefined rules.
+   - **SpatialAnalyzer:** Evaluates the bounding boxes against a user-defined bed polygon.
+3. **StateEngine:** Uses a sliding window and hysteresis to determine the `ActivityState`. Implements deterministic logic to track targets that leave the camera's FOV.
+4. **InvestigationAgent (VLM):** An agentic fallback using LangGraph. If the `StateEngine` outputs `UNKNOWN`, it sends frames and context to Gemini to resolve the ambiguity.
+5. **BedEventEngine:** Tracks transitions into and out of the bed, triggering `BED_EXIT` and `RETURN_TO_BED` events only after a hysteresis threshold is met.
+6. **Timeline & Safety Engines:** Aggregates states, formats activity durations, and outputs a final JSON report with safety alerts based on predefined rules.
+
+---
+
+## 🚀 Installation & Setup
+
+1. **Clone the repository and enter the directory:**
+   ```bash
+   git clone <your-repo-url>
+   cd "Sleeping posture detection system"
+   ```
+
+2. **Create and activate a virtual environment:**
+   ```bash
+   # Windows
+   python -m venv venv
+   .\venv\Scripts\activate
+   
+   # Linux/Mac
+   python3 -m venv venv
+   source venv/bin/activate
+   ```
+
+3. **Install the dependencies:**
+   ```bash
+   pip install -r requirements.txt
+   ```
+
+4. **Configure API Keys:**
+   The VLM fallback requires a Google Gemini API key. Create a `.env` file in the root directory and add your key:
+   ```env
+   GEMINI_API_KEY=your_api_key_here
+   ```
+
+---
+
+## ⚙️ Configuration & Usage
+
+### 1. Define the Bed Region (Important for new videos)
+Before analyzing a new video with a different camera angle, you must configure the spatial boundaries of the bed. Run the helper script:
+```bash
+python get_bed_polygon.py <path_to_video>
+```
+*Click the 4 corners of the bed on the image popup. Press `q` to quit. Copy the resulting coordinates into `config.yaml`.*
+
+### 2. Run the Analysis Pipeline
+To analyze a video and generate a full timeline report, use the CLI:
+
+```bash
+python -m sleep_monitor.cli analyze "video_1.mp4" --config "config.yaml"
+```
+
+**Want to see the system working live?** Add the `--visualize` flag to open a debug window showing bounding boxes, pose keypoints, and the bed polygon in real-time:
+```bash
+python -m sleep_monitor.cli analyze "video_1.mp4" --config "config.yaml" --visualize
+```
+
+### 3. Review the Output
+Once the pipeline finishes, it will generate a comprehensive JSON report located at `output/video_1_report.json`. This report includes:
+- Total durations for all recognized activities (Lying, Sitting, Walking).
+- Exact timestamps for `BED_EXIT` and `RETURN_TO_BED` events.
+- An aggregated block-by-block timeline of the person's state.
+- The final `safety_decision` (e.g., `NORMAL` or `ALERT`).
