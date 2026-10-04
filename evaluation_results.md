@@ -38,5 +38,5 @@ The system was designed to handle difficult cases using temporal logic and Agent
 **System Behavior:** The `SpatialAnalyzer` observes that the bounding box is still fully inside the bed polygon and horizontal. The `StateEngine` accumulates evidence and maintains `LYING_IN_BED` instead of jittering.
 
 ### 3. VLM Rate Limiting (Known Limitation)
-**Scenario:** The deterministic pipeline hits a genuine ambiguity (e.g. `UNKNOWN` state due to heavy occlusion) and requests the `InvestigationAgent` to resolve it using Gemini 1.5 Flash.
+**Scenario:** The deterministic pipeline hits a genuine ambiguity (e.g. `UNKNOWN` state due to heavy occlusion) and requests the `InvestigationAgent` to resolve it using Gemini 3.8 Flash.
 **System Behavior:** On the free tier, the Google Gemini API frequently returns a `RESOURCE_EXHAUSTED` (429) error when processing multiple frames. The system handles this gracefully by catching the error, logging the failure, and falling back to the deterministic pipeline's `UNKNOWN` state rather than crashing.

@@ -44,7 +44,6 @@ class BedEventsConfig(BaseSettings):
 
 
 class SafetyRulesConfig(BaseSettings):
-    monitor_confidence_threshold: float = 0.6
     monitor_bed_edge_duration_sec: int = 120
     out_of_bed_monitor_sec: int = 300
     alert_out_of_bed_duration_sec: int = 900

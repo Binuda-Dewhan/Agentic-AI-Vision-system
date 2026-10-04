@@ -9,8 +9,8 @@ The system uses a combination of deterministic spatial/temporal rules and an Age
 Key capabilities:
 - **Activity State Recognition:** Classifies states such as `LYING_IN_BED`, `SITTING_ON_BED`, `STANDING`, `WALKING`, and `UNKNOWN`.
 - **Bed Exit and Return:** Uses hysteresis to filter out false exits/returns and only triggers when a person physically moves away from or returns to the bed.
-- **Agentic Fallback:** Uses LangGraph and Gemini 1.5 Flash to investigate ambiguous segments (e.g. `UNKNOWN` states) by looking at temporal context (previous and next frames).
-- **Disappearance Inference:** Falls back to deterministic state tracking (e.g. inferring `WALKING`/`OUT_OF_BED`) when the target person completely disappears from the camera frame.
+- **Disappearance Inference (Deterministic Fallback):** If the target person completely disappears from the camera frame (0 detections), the system infers they are `WALKING` and `OUT_OF_BED` (if they were previously upright/near the edge). This handles camera FOV exits robustly without AI.
+- **Agentic Fallback (Optional):** Uses LangGraph and Gemini 3.8 Flash to investigate ambiguous segments (e.g. `UNKNOWN` states) by looking at temporal context. **Note:** The VLM is strictly an optional ambiguity-investigation path. If the API is unavailable, rate-limited, or disabled, the pipeline gracefully bypasses the agent and relies on the deterministic state tracking.
 
 ## Setup Instructions
 
@@ -65,7 +65,7 @@ flowchart TD
     
     E -->|Current State| F{Confidence / Ambiguity Check}
     F -->|Low Confidence / UNKNOWN| G[LangGraph VLM Agent]
-    G -.->|Gemini 1.5 Flash| H[(VLM Inference)]
+    G -.->|Gemini 3.8 Flash| H[(VLM Inference)]
     H -.-> G
     G -->|Confirmed State| I[Bed Event Engine]
     
